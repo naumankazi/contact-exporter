@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.exportcontactsapp.k180op"
+      "bundleIdentifier": "com.emergent.exportcontactsapp.k180op",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Read your contacts to export them as a file"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +21,8 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.exportcontactsapp.k180op"
+      "package": "com.emergent.exportcontactsapp.k180op",
+      "permissions": ["android.permission.READ_CONTACTS"]
     },
     "web": {
       "bundler": "metro",
@@ -27,6 +31,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Read your contacts to export them as a file"
+        }
+      ],
       [
         "expo-splash-screen",
         {
