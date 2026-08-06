@@ -1,0 +1,151 @@
+{
+  "app_name": "VCF Export Utility",
+  "personality": "1 iOS-Native Clean",
+  "personality_one_liner": "A sharp, minimal, and highly utilitarian native iOS experience focused on raw functionality without visual noise.",
+  "color": {
+    "light": {
+      "surface": "#FFFFFF",
+      "onSurface": "#0F0F10",
+      "surfaceSecondary": "#F2F2F7",
+      "onSurfaceSecondary": "#3A3A3C",
+      "surfaceTertiary": "#E5E5EA",
+      "onSurfaceTertiary": "#8E8E93",
+      "surfaceInverse": "#1C1C1E",
+      "onSurfaceInverse": "#FFFFFF",
+      "brand": "#4F6B56",
+      "brandPrimary": "#4F6B56",
+      "onBrandPrimary": "#FFFFFF",
+      "brandSecondary": "#A3B1A6",
+      "onBrandSecondary": "#0F0F10",
+      "brandTertiary": "#E8EBE9",
+      "onBrandTertiary": "#4F6B56",
+      "success": "#34C759",
+      "onSuccess": "#FFFFFF",
+      "warning": "#FFCC00",
+      "onWarning": "#1C1C1E",
+      "error": "#FF3B30",
+      "onError": "#FFFFFF",
+      "info": "#8E8E93",
+      "onInfo": "#FFFFFF",
+      "border": "#E5E5EA",
+      "borderStrong": "#C7C7CC",
+      "divider": "#E5E5EA"
+    },
+    "dark": {
+      "surface": "#000000",
+      "onSurface": "#FFFFFF",
+      "surfaceSecondary": "#1C1C1E",
+      "onSurfaceSecondary": "#EBEBF5",
+      "surfaceTertiary": "#2C2C2E",
+      "onSurfaceTertiary": "#98989D",
+      "surfaceInverse": "#FFFFFF",
+      "onSurfaceInverse": "#000000",
+      "brand": "#5F8569",
+      "brandPrimary": "#5F8569",
+      "onBrandPrimary": "#FFFFFF",
+      "brandSecondary": "#3A5040",
+      "onBrandSecondary": "#FFFFFF",
+      "brandTertiary": "#1A241D",
+      "onBrandTertiary": "#5F8569",
+      "success": "#32D74B",
+      "onSuccess": "#000000",
+      "warning": "#FFD60A",
+      "onWarning": "#000000",
+      "error": "#FF453A",
+      "onError": "#000000",
+      "info": "#8E8E93",
+      "onInfo": "#000000",
+      "border": "#38383A",
+      "borderStrong": "#48484A",
+      "divider": "#38383A"
+    }
+  },
+  "typography": {
+    "displayFontFamily": "Geist",
+    "textFontFamily": "Geist",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Use iOS-native generous padding. Avoid tight clustering.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": 1,
+  "navigation": "stack_only",
+  "icon_set": "Ionicons",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use glass on the bottom sticky container for the Export button",
+      "Use glass on the sticky top header (search and select-all row)"
+    ],
+    "dont's": [
+      "Do not use glass on list rows or cards"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-blur",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home",
+      "purpose": "Allow users to view all contacts, search, multi-select, and export them as a VCF file.",
+      "states": {
+        "loading": "Centered spinner (brandPrimary)",
+        "empty": "Full screen abstract background with gradient scrim, a lock or folder icon, a short text ('No contacts found' or 'Permission Denied'), and an 'Open Settings' primary CTA.",
+        "error": "Readable message + Retry button"
+      },
+      "layout": "Root is a View with surface background. Top: Sticky Header containing Search Bar (surfaceSecondary background, md radius) and below it a row with 'N Selected' (lg text) and 'Select All' toggle. Middle: FlatList of contacts. Each row: min height 60pt, row direction. Left: Avatar (40x40 circle, brandTertiary bg, onBrandTertiary initials). Center: Column with Name (lg, 500, onSurface) and Phone (base, 400, onSurfaceSecondary). Right: Checkbox (Ionicons checkmark-circle filled in brandPrimary if selected, ellipse-outline in onSurfaceTertiary if not). Bottom: Absolute positioned container (bottom safe area + md padding) using glassmorphism (expo-blur), holding a pill-shaped brandPrimary Export button. Add 100pt paddingBottom to FlatList so last items aren't hidden by the floating CTA."
+    }
+  ],
+  "images": {
+    "empty_state_bg": {
+      "url": "https://images.pexels.com/photos/3062948/pexels-photo-3062948.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "dark": "https://images.unsplash.com/photo-1637946175559-22c4fe13fc54?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwxfHxjbGVhbiUyMG1pbmltYWwlMjBhYnN0cmFjdCUyMGJsYWNrJTIwZ2VvbWV0cmljJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3ODYwMjY2NDV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Clean minimal abstract geometric background"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow 1 iOS-Native Clean personality. No indigos or blues.",
+    "Use Moss Green (#4F6B56) for primary actions.",
+    "Contacts List: Build a highly performant FlatList. Each row must be at least 60pt tall.",
+    "Avatars: Since real logos aren't applicable here, build initials-based avatars inside a circular View with brandTertiary background and onBrandTertiary text (Tier 3 fallback as per rules).",
+    "Empty/Permission State: Since 'An icon alone is not enough', use the provided empty_state_bg. Apply the STRICT text-on-image scrim pattern: Layer 0 = image, Layer 1 = vertical expo-linear-gradient from transparent (0%) to ~20% surfaceInverse (50%) to 70%+ surfaceInverse (100%), Layer 2 = text and CTA placed in the bottom 40% using onSurfaceInverse color.",
+    "Export CTA: Must be sticky at the bottom using expo-blur container, overlaid on top of the FlatList. The FlatList needs contentContainerStyle paddingBottom equal to the CTA height so the last contacts are reachable.",
+    "Haptics: Provide haptic feedback on selecting/deselecting a contact, select all, and successful export.",
+    "Export Logic: Use expo-contacts to fetch locally, generate the VCF string locally (do not send to servers), and share via expo-sharing.",
+    "Ensure 'Select All' works intuitively with search filtering (e.g., selecting all only applies to currently filtered results if a search is active, or globally depending on standard UX, default to global for simplicity unless filtered)."
+  ],
+  "haptics": {
+    "toggle_contact": "selection",
+    "toggle_select_all": "impactLight",
+    "export_success": "notificationSuccess",
+    "export_error": "notificationError"
+  }
+}
