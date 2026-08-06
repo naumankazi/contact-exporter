@@ -21,15 +21,17 @@ Mobile app to export phone contacts as a VCF (vCard) file. On launch, request pe
 ## Implemented (2026-06-06)
 - `src/vcf.ts` — vCard 3.0 generator + auto filename (validated: escaping, multi-phone, multi-contact).
 - `src/theme.ts` — design tokens (colors/spacing/radius/typography).
+- `src/history.ts` — on-device export history (last 10) via storage helper.
 - `src/components/ContactRow.tsx` — 60pt row, initials avatar, name+phone, check toggle.
-- `app/index.tsx` — permission flow (loading/needs-permission/denied/ready), search, select-all, sticky glass export bar, toast feedback, haptics, empty states with gradient-scrim image.
+- `app/index.tsx` — permission flow, search, select-all, sticky glass export bar, toast, haptics, empty states.
+  - A–Z sectioned list (SectionList, sticky letter headers) + fast side alphabet index (tap to jump).
+  - Export History sheet (time icon in header) listing recent exports with one-tap re-share.
 - `app/_layout.tsx` — GestureHandlerRootView + SafeAreaProvider + StatusBar.
 - `app.json` — contacts permission (iOS infoPlist + Android READ_CONTACTS + expo-contacts plugin).
 
 ## Backlog
-- P1: Group list by first letter with section headers + A–Z index.
 - P2: Include emails/addresses in VCF (currently name+phone only, per user choice).
-- P2: Contact count badge / recently-exported history.
+- P2: Filter to contacts with no name / duplicate numbers before exporting.
 
 ## Notes
 - Contacts read + export are **native-only** — must be tested in Expo Go on a real device; the web preview shows only the permission screen and cannot access device contacts.

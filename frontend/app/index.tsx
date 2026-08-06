@@ -11,19 +11,20 @@ import {
   ActivityIndicator,
   Animated,
   Linking,
+  Modal,
   Pressable,
+  ScrollView,
+  SectionList,
   StyleSheet,
   Text,
   TextInput,
   useColorScheme,
   View,
 } from "react-native";
-import { FlatList } from "react-native-gesture-handler";
-import {
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ContactRow } from "@/src/components/ContactRow";
+import { addHistory, ExportRecord, getHistory } from "@/src/history";
 import { fontSize, palette, radius, spacing } from "@/src/theme";
 import { buildFileName, generateVCF, SimpleContact } from "@/src/vcf";
 
@@ -46,6 +47,9 @@ export default function Home() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [history, setHistory] = useState<ExportRecord[]>([]);
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const listRef = useRef<SectionList<SimpleContact>>(null);
 
   // Toast
   const [toast, setToast] = useState<{ msg: string; error?: boolean } | null>(
@@ -124,6 +128,10 @@ export default function Home() {
     evaluatePermission();
   }, [evaluatePermission]);
 
+  useEffect(() => {
+    getHistory().then(setHistory);
+  }, []);
+
   const requestPermission = useCallback(async () => {
     const res = await Contacts.requestPermissionsAsync();
     setCanAskAgain(res.canAskAgain);
@@ -147,6 +155,38 @@ export default function Home() {
 
   const allFilteredSelected =
     filtered.length > 0 && filtered.every((c) => selected.has(c.id));
+
+  const sections = useMemo(() => {
+    const map = new Map<string, SimpleContact[]>();
+    filtered.forEach((c) => {
+      const first = (c.name.trim()[0] || "#").toUpperCase();
+      const letter = /[A-Z]/.test(first) ? first : "#";
+      if (!map.has(letter)) map.set(letter, []);
+      map.get(letter)!.push(c);
+    });
+    const letters = Array.from(map.keys()).sort((a, b) =>
+      a === "#" ? 1 : b === "#" ? -1 : a.localeCompare(b),
+    );
+    return letters.map((l) => ({ title: l, data: map.get(l)! }));
+  }, [filtered]);
+
+  const sectionLetters = sections.map((s) => s.title);
+
+  const scrollToLetter = useCallback(
+    (letter: string) => {
+      const idx = sections.findIndex((s) => s.title === letter);
+      if (idx >= 0) {
+        Haptics.selectionAsync();
+        listRef.current?.scrollToLocation({
+          sectionIndex: idx,
+          itemIndex: 0,
+          animated: true,
+          viewPosition: 0,
+        });
+      }
+    },
+    [sections],
+  );
 
   const toggleContact = useCallback((id: string) => {
     Haptics.selectionAsync();
@@ -197,6 +237,14 @@ export default function Home() {
         dialogTitle: "Export contacts",
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const rec: ExportRecord = {
+        id: `${Date.now()}`,
+        fileName,
+        count: chosen.length,
+        at: new Date().toISOString(),
+        vcf,
+      };
+      setHistory(await addHistory(rec));
       showToast(`Exported ${chosen.length} contact${chosen.length > 1 ? "s" : ""}`);
     } catch (e) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -205,6 +253,32 @@ export default function Home() {
       setExporting(false);
     }
   }, [contacts, selected, exporting, showToast]);
+
+  const reshare = useCallback(
+    async (rec: ExportRecord) => {
+      try {
+        const file = new File(Paths.cache, rec.fileName);
+        if (file.exists) file.delete();
+        file.create();
+        file.write(rec.vcf);
+        const canShare = await Sharing.isAvailableAsync();
+        if (!canShare) {
+          showToast("Sharing is not available on this device", true);
+          return;
+        }
+        setHistoryVisible(false);
+        await Sharing.shareAsync(file.uri, {
+          mimeType: "text/vcard",
+          UTI: "public.vcard",
+          dialogTitle: "Export contacts",
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {
+        showToast("Could not re-share this file", true);
+      }
+    },
+    [showToast],
+  );
 
   // ---------- Render states ----------
 
@@ -301,7 +375,17 @@ export default function Home() {
           },
         ]}
       >
-        <Text style={[styles.title, { color: colors.onSurface }]}>Contacts</Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: colors.onSurface }]}>Contacts</Text>
+          <Pressable
+            testID="history-button"
+            onPress={() => setHistoryVisible(true)}
+            hitSlop={8}
+            style={[styles.historyBtn, { backgroundColor: colors.surfaceSecondary }]}
+          >
+            <Ionicons name="time-outline" size={20} color={colors.onSurface} />
+          </Pressable>
+        </View>
 
         <View style={[styles.searchBar, { backgroundColor: colors.surfaceSecondary }]}>
           <Ionicons name="search" size={18} color={colors.onSurfaceTertiary} />
@@ -349,12 +433,14 @@ export default function Home() {
         </View>
       </View>
 
-      <FlatList
+      <SectionList
         testID="contacts-list"
-        data={filtered}
+        ref={listRef}
+        sections={sections}
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        stickySectionHeadersEnabled
         renderItem={({ item }) => (
           <ContactRow
             contact={item}
@@ -363,10 +449,20 @@ export default function Home() {
             colors={colors}
           />
         )}
+        renderSectionHeader={({ section }) => (
+          <View
+            style={[styles.sectionHeader, { backgroundColor: colors.surfaceSecondary }]}
+          >
+            <Text style={[styles.sectionHeaderText, { color: colors.onSurfaceSecondary }]}>
+              {section.title}
+            </Text>
+          </View>
+        )}
         ItemSeparatorComponent={() => (
           <View style={[styles.separator, { backgroundColor: colors.divider }]} />
         )}
         contentContainerStyle={{ paddingBottom: ctaHeight + spacing.lg }}
+        onScrollToIndexFailed={() => {}}
         ListEmptyComponent={
           <View style={styles.listEmpty}>
             <Ionicons name="search" size={28} color={colors.onSurfaceTertiary} />
@@ -378,6 +474,25 @@ export default function Home() {
           </View>
         }
       />
+
+      {sectionLetters.length > 1 && (
+        <View
+          testID="alpha-index"
+          style={[styles.alphaIndex, { top: insets.top + 150 }]}
+          pointerEvents="box-none"
+        >
+          {sectionLetters.map((l) => (
+            <Pressable
+              key={l}
+              testID={`alpha-${l}`}
+              onPress={() => scrollToLetter(l)}
+              hitSlop={4}
+            >
+              <Text style={[styles.alphaLetter, { color: colors.brandPrimary }]}>{l}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {/* Bottom sticky export bar */}
       <BlurView
@@ -434,6 +549,74 @@ export default function Home() {
           )}
         </Pressable>
       </BlurView>
+
+      {/* Export history */}
+      <Modal
+        visible={historyVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setHistoryVisible(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setHistoryVisible(false)}
+        >
+          <Pressable
+            testID="history-sheet"
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: colors.surface,
+                paddingBottom: insets.bottom + spacing.lg,
+              },
+            ]}
+          >
+            <View style={[styles.sheetHandle, { backgroundColor: colors.surfaceTertiary }]} />
+            <Text style={[styles.sheetTitle, { color: colors.onSurface }]}>
+              Recent exports
+            </Text>
+            {history.length === 0 ? (
+              <View style={styles.historyEmpty}>
+                <Ionicons name="time-outline" size={28} color={colors.onSurfaceTertiary} />
+                <Text style={[styles.listEmptyText, { color: colors.onSurfaceTertiary }]}>
+                  No exports yet
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={{ maxHeight: 340 }}>
+                {history.map((rec) => (
+                  <View
+                    key={rec.id}
+                    testID={`history-row-${rec.id}`}
+                    style={[styles.historyRow, { borderBottomColor: colors.divider }]}
+                  >
+                    <View style={styles.historyInfo}>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.historyName, { color: colors.onSurface }]}
+                      >
+                        {rec.fileName}
+                      </Text>
+                      <Text style={[styles.historyMeta, { color: colors.onSurfaceSecondary }]}>
+                        {rec.count} contact{rec.count > 1 ? "s" : ""} ·{" "}
+                        {new Date(rec.at).toLocaleString()}
+                      </Text>
+                    </View>
+                    <Pressable
+                      testID={`reshare-${rec.id}`}
+                      onPress={() => reshare(rec)}
+                      hitSlop={8}
+                      style={[styles.reshareBtn, { backgroundColor: colors.brandTertiary }]}
+                    >
+                      <Ionicons name="share-outline" size={18} color={colors.onBrandTertiary} />
+                    </Pressable>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Toast */}
       {toast && (
@@ -588,4 +771,83 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   toastText: { flex: 1, fontSize: fontSize.base, fontWeight: "500" },
+
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  historyBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+  },
+  sectionHeaderText: {
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+  },
+  alphaIndex: {
+    position: "absolute",
+    right: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  alphaLetter: {
+    fontSize: 11,
+    fontWeight: "700",
+    paddingVertical: 1,
+    paddingHorizontal: 4,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: radius.pill,
+    alignSelf: "center",
+    marginBottom: spacing.md,
+  },
+  sheetTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: "700",
+    marginBottom: spacing.md,
+  },
+  historyEmpty: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing["2xl"],
+    gap: spacing.sm,
+  },
+  historyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  historyInfo: { flex: 1 },
+  historyName: { fontSize: fontSize.base, fontWeight: "600" },
+  historyMeta: { fontSize: fontSize.sm, marginTop: 2 },
+  reshareBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
