@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "contact-exporter",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.emergent.exportcontactsapp.k180op",
@@ -20,7 +19,6 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.emergent.exportcontactsapp.k180op",
       "permissions": ["android.permission.READ_CONTACTS"]
     },
