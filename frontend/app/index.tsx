@@ -1,6 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import * as Contacts from "expo-contacts";
+import {
+  Contact,
+  ContactField,
+  getPermissionsAsync,
+  requestPermissionsAsync,
+} from "expo-contacts";
 import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -79,29 +84,27 @@ export default function Home() {
 
   const loadContacts = useCallback(async () => {
     setPhase("loading");
-    const { data } = await Contacts.getContactsAsync({
-      fields: [
-        Contacts.Fields.FirstName,
-        Contacts.Fields.LastName,
-        Contacts.Fields.Name,
-        Contacts.Fields.PhoneNumbers,
-      ],
-    });
+    const data = await Contact.getAllDetails([
+      ContactField.GIVEN_NAME,
+      ContactField.FAMILY_NAME,
+      ContactField.FULL_NAME,
+      ContactField.PHONES,
+    ]);
 
     const mapped: SimpleContact[] = data
-      .map((c) => {
-        const phones = (c.phoneNumbers || [])
-          .map((p) => (p.number || "").trim())
+      .map((contact) => {
+        const phones = (contact.phones || [])
+          .map((phone) => (phone.number || "").trim())
           .filter(Boolean);
         const name =
-          c.name ||
-          [c.firstName, c.lastName].filter(Boolean).join(" ").trim() ||
+          contact.fullName ||
+          [contact.givenName, contact.familyName].filter(Boolean).join(" ").trim() ||
           "No Name";
         return {
-          id: c.id || name + phones.join(""),
+          id: contact.id || name + phones.join(""),
           name,
-          firstName: c.firstName,
-          lastName: c.lastName,
+          firstName: contact.givenName ?? undefined,
+          lastName: contact.familyName ?? undefined,
           phones,
         };
       })
@@ -113,7 +116,7 @@ export default function Home() {
   }, []);
 
   const evaluatePermission = useCallback(async () => {
-    const res = await Contacts.getPermissionsAsync();
+    const res = await getPermissionsAsync();
     setCanAskAgain(res.canAskAgain);
     if (res.status === "granted") {
       await loadContacts();
@@ -133,7 +136,7 @@ export default function Home() {
   }, []);
 
   const requestPermission = useCallback(async () => {
-    const res = await Contacts.requestPermissionsAsync();
+    const res = await requestPermissionsAsync();
     setCanAskAgain(res.canAskAgain);
     if (res.status === "granted") {
       await loadContacts();
